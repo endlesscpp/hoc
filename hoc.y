@@ -1,15 +1,17 @@
 %{
 #define YYSTYPE double  // data dype of yacc stack
 %}
-%token NUMBER
-%left '+' '-' // left associative, same precedence
-%left '%' '/'
+%token  NUMBER
+%left   '+' '-' // left associative, same precedence
+%left   '%' '/'
+%left   UNARYMINUS
 %%
 list:    // nothing
         | list '\n'
         | list expr '\n' { printf("\t%.8g\n", $2); }
         ;
 expr:   NUMBER          { $$ = $1; }
+        | '-' expr %prec UNARYMINUS { $$ = -$2; }   // unary minus
         | expr '+' expr   { $$ = $1 + $3; }
         | expr '-' expr   { $$ = $1 - $3; }
         | expr '*' expr   { $$ = $1 * $3; }
