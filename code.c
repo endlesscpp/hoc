@@ -51,6 +51,22 @@ Inst* code(Inst f)
     if (progp >= &prog[NPROG]) {
         execerror("program too big", NULL);
     }
+
+    // [oak] debug
+    const char* name = debugLookupFuncName(f);
+    if (name != NULL) {
+        printf("\t%s\n", name);
+    } else if (f != NULL) {
+        Symbol* p = (Symbol*)f;
+        if (p->type == CONST) {
+            printf("\t%s\n", p->name);
+        } else {
+            printf("\t%.8g\n", p->u.val);
+        }
+    } else {
+        printf("\tSTOP\n");
+    }
+
     *progp++ = f;
     return oprogp;
 }

@@ -33,6 +33,11 @@ Symbol* install(const char* s, int t, double d);
 Symbol* lookup(const char* s);
 
 /**
+ * alloc buffer
+ */
+void* emalloc(unsigned int n);
+
+/**
  * interpreter stack type
  */
 typedef union Datum {
@@ -49,4 +54,6 @@ extern Inst prog[];
 extern void eval(), add(), sub(), mul(), hocDiv(), negate(), power();
 extern void assign(), bltin(), varpush(), constpush(), print();
 
+void        debugInitSymbolTable();
+const char* debugLookupFuncName(void* addr);
 #endif
