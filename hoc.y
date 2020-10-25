@@ -1,17 +1,16 @@
 %{
 #include "hoc.h"
 #include <stdio.h>
-extern double Pow(double, double);
+#define code2(c1, c2)       code(c1);code(c2);
+#define code3(c1, c2, c3)   code(c1);code(c2);code(c3);
 void execerror(char* s, char* t);
 void yyerror(char* s);
 %}
 %union {
-    double val;     // actual value
     Symbol* sym;    // symbol table pointer
+    Inst*   inst;   // machine instruction
 }
-%token  <val>   NUMBER
-%token  <sym>   VAR CONST BLTIN UNDEF
-%type   <val>   expr asgn   // expression, assign
+%token  <sym>   NUMBER VAR CONST BLTIN UNDEF
 %right  '='
 %left   '+' '-' // left associative, same precedence
 %left   '*' '/'
@@ -20,32 +19,28 @@ void yyerror(char* s);
 %%
 list:    // nothing
         | list '\n'
-        | list asgn '\n'
-        | list expr '\n'    { printf("\t%.8g\n", $2); }
+        | list asgn '\n'    { code2(pop, STOP); return 1;}
+        | list expr '\n'    { code2(print, STOP); return 1;}
         | list error '\n'   { yyerrok; }
         ;
-asgn:   VAR '=' expr    { $$ = $1->u.val=$3; $1->type=VAR; }
+asgn:   VAR '=' expr    { code3(varpush, (Inst)$1, assign); }
         | CONST '=' expr    { execerror("cannot assign to const value", $1->name); }
         ;
-expr:   NUMBER          { $$ = $1; }
+expr:   NUMBER          { code2(constpush, (Inst)$1); }
         | VAR           { if ($1->type == UNDEF)
-                              execerror("undefined variable", $1->name);
-                          $$ = $1->u.val;
+                              execerror("undefined variable1", $1->name);
+                          code3(varpush, (Inst)$1, eval);
                         }
-        | CONST         { $$ = $1->u.val; }
+        | CONST         { code3(varpush, (Inst)$1, eval); }
         | asgn
-        | BLTIN '(' expr ')' { $$ = (*($1->u.ptr))($3); };
-        | expr '+' expr   { $$ = $1 + $3; }
-        | expr '-' expr   { $$ = $1 - $3; }
-        | expr '*' expr   { $$ = $1 * $3; }
-        | expr '/' expr   {
-                if ($3 == 0.0)
-                    execerror("division by zero", "");
-                $$ = $1 / $3; 
-                }
-        | expr '^' expr     { $$ = Pow($1, $3); }
-        | '(' expr ')'      { $$ = $2; }
-        | '-' expr %prec UNARYMINUS { $$ = -$2; }   // unary minus
+        | BLTIN '(' expr ')' { code2(bltin, (Inst)$1->u.ptr); }
+        | expr '+' expr   { code(add); }
+        | expr '-' expr   { code(sub); }
+        | expr '*' expr   { code(mul); }
+        | expr '/' expr   { code(hocDiv); }
+        | expr '^' expr   { code(power); }
+        | '(' expr ')'
+        | '-' expr %prec UNARYMINUS { code(negate); }   // unary minus
         ;
 %%
         /* end of grammer */
@@ -62,13 +57,15 @@ jmp_buf begin;
 
 void fprecatch(int signum);
 
-void main(int argc, char** argv)
+int main(int argc, char** argv)
 {
     progname = argv[0];
     init();
     setjmp(begin);
     signal(SIGFPE, fprecatch);
-    yyparse();
+    for (initcode(); yyparse(); initcode())
+        execute(prog);
+    return 0;
 }
 
 int yylex()
@@ -83,8 +80,10 @@ int yylex()
     }
     
     if (c == '.' || isdigit(c)) {
+        double d;
         ungetc(c, stdin);
-        scanf("%lf", &yylval.val);
+        scanf("%lf", &d);
+        yylval.sym = install("", NUMBER, d);
         return NUMBER;
     }
 

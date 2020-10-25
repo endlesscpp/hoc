@@ -5,6 +5,9 @@
 #    define NULL (0L)
 #endif
 
+/**
+ * symbol table entry
+ */
 typedef struct Symbol {
     char* name;
     short type; // VAR, BLTIN, UNDEF
@@ -28,5 +31,22 @@ Symbol* install(const char* s, int t, double d);
  * @param s - name
  */
 Symbol* lookup(const char* s);
+
+/**
+ * interpreter stack type
+ */
+typedef union Datum {
+    double  val;
+    Symbol* sym;
+} Datum;
+
+extern Datum pop();
+
+typedef void (*Inst)(); // machine instruction
+#define STOP (Inst)0
+
+extern Inst prog[];
+extern void eval(), add(), sub(), mul(), hocDiv(), negate(), power();
+extern void assign(), bltin(), varpush(), constpush(), print();
 
 #endif
