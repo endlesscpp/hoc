@@ -3,7 +3,7 @@
 %}
 %token  NUMBER
 %left   '+' '-' // left associative, same precedence
-%left   '%' '/'
+%left   '*' '/'
 %left   UNARYMINUS
 %%
 list:    // nothing
