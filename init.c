@@ -52,6 +52,7 @@ void debugInitSymbolTable()
     debugInstallSymbol("execBltin", bltin);
     debugInstallSymbol("varpush", varpush);
     debugInstallSymbol("constpush", constpush);
+    debugInstallSymbol("pop", pop);
     debugInstallSymbol("popPrint", print);
 
     int i;

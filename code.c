@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "hoc.h"
 #include "y.tab.h"
@@ -61,7 +62,11 @@ Inst* code(Inst f)
         if (p->type == CONST) {
             printf("\t%s\n", p->name);
         } else {
-            printf("\t%.8g\n", p->u.val);
+            if (p->name == NULL || strlen(p->name) == 0) {
+                printf("\t%.8g\n", p->u.val);
+            } else {
+                printf("\t%s:%.8g\n", p->name, p->u.val);
+            }
         }
     } else {
         printf("\tSTOP\n");
