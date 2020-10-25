@@ -29,7 +29,7 @@ void init()
 {
     int i;
     for (i = 0; consts[i].name != NULL; i++) {
-        install(consts[i].name, VAR, consts[i].cval);
+        install(consts[i].name, CONST, consts[i].cval);
     }
 
     for (i = 0; builtins[i].name != NULL; i++) {

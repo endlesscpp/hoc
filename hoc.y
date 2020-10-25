@@ -10,7 +10,7 @@ void yyerror(char* s);
     Symbol* sym;    // symbol table pointer
 }
 %token  <val>   NUMBER
-%token  <sym>   VAR BLTIN UNDEF
+%token  <sym>   VAR CONST BLTIN UNDEF
 %type   <val>   expr asgn   // expression, assign
 %right  '='
 %left   '+' '-' // left associative, same precedence
@@ -25,12 +25,14 @@ list:    // nothing
         | list error '\n'   { yyerrok; }
         ;
 asgn:   VAR '=' expr    { $$ = $1->u.val=$3; $1->type=VAR; }
+        | CONST '=' expr    { execerror("cannot assign to const value", $1->name); }
         ;
 expr:   NUMBER          { $$ = $1; }
         | VAR           { if ($1->type == UNDEF)
                               execerror("undefined variable", $1->name);
                           $$ = $1->u.val;
                         }
+        | CONST         { $$ = $1->u.val; }
         | asgn
         | BLTIN '(' expr ')' { $$ = (*($1->u.ptr))($3); };
         | expr '+' expr   { $$ = $1 + $3; }
