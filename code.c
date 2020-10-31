@@ -14,6 +14,8 @@ Inst  prog[NPROG]; // the machine
 Inst* progp;       // next free spot for code generation
 Inst* pc;          // program counter during execution
 
+#define EPSILON 0.00000001
+
 void initcode()
 {
     stackp = stack;
@@ -63,9 +65,9 @@ Inst* code(Inst f)
             printf("\t%s\n", p->name);
         } else {
             if (p->name == NULL || strlen(p->name) == 0) {
-                printf("\t%.8g\n", p->u.val);
+                printf("\t%.8g[type:%d]\n", p->u.val, p->type);
             } else {
-                printf("\t%s:%.8g\n", p->name, p->u.val);
+                printf("\t%s:%.8g[type:%d]\n", p->name, p->u.val, p->type);
             }
         }
     } else {
@@ -210,3 +212,137 @@ void bltin()
     push(d);
 }
 
+void lt()
+{
+    Datum d1, d2;
+    d2     = pop();
+    d1     = pop();
+    d1.val = (double)(d1.val < d2.val);
+    push(d1);
+}
+
+void gt()
+{
+    Datum d1, d2;
+    d2     = pop();
+    d1     = pop();
+    d1.val = (double)(d1.val > d2.val);
+    push(d1);
+}
+
+void eq()
+{
+    Datum d1, d2;
+    d2     = pop();
+    d1     = pop();
+    d1.val = (double)(d1.val == d2.val);
+    push(d1);
+}
+
+void le()
+{
+    Datum d1, d2;
+    d2     = pop();
+    d1     = pop();
+    d1.val = (double)(d1.val <= d2.val);
+    push(d1);
+}
+
+void ge()
+{
+    Datum d1, d2;
+    d2     = pop();
+    d1     = pop();
+    d1.val = (double)(d1.val >= d2.val);
+    push(d1);
+}
+
+void ne()
+{
+    Datum d1, d2;
+    d2     = pop();
+    d1     = pop();
+    d1.val = (double)(d1.val != d2.val);
+    push(d1);
+}
+
+void hocAnd()
+{
+    Datum d1, d2;
+    d2     = pop();
+    d1     = pop();
+    d1.val = (double)(d1.val > EPSILON && d2.val > EPSILON);
+    push(d1);
+}
+
+void hocOr()
+{
+    Datum d1, d2;
+    d2     = pop();
+    d1     = pop();
+    d1.val = (double)(d1.val > EPSILON || d2.val > EPSILON);
+    push(d1);
+}
+
+void hocNot()
+{
+    Datum d1;
+    d1     = pop();
+    d1.val = (double)(d1.val <= EPSILON);
+    push(d1);
+}
+
+/**
+ * print numeric value
+ */
+void printexpr()
+{
+    Datum d;
+    d = pop();
+    printf("%.8g\n", d.val);
+}
+
+/**
+ * stack layout:
+ * - whilecode
+ * - loopbody
+ * - next statement
+ * - condition
+ */
+void whilecode()
+{
+    Datum d;
+    Inst* savepc = pc; // loop body
+
+    execute(savepc + 2); // condition
+    d = pop();
+    while (d.val > EPSILON) {
+        execute(*((Inst**)savepc)); // body
+        execute(savepc + 2);        // condition
+        d = pop();
+    }
+    pc = *(Inst**)(savepc + 1); // next statment
+}
+
+/**
+ * stack layout:
+ * ifcode
+ * then part addr <- pc
+ * else part addr
+ * next statment addr
+ * condition
+ */
+void ifcode()
+{
+    Datum d;
+    Inst* savepc = pc; // then
+
+    execute(savepc + 3); // condition
+    d = pop();
+    if (d.val > EPSILON) {
+        execute(*(Inst**)savepc);
+    } else if (*(Inst**)(savepc + 1) != NULL) {
+        execute(*(Inst**)(savepc + 1)); // else
+    }
+    pc = *(Inst**)(savepc + 2); // next
+}

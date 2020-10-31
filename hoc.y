@@ -10,37 +10,80 @@ void yyerror(char* s);
     Symbol* sym;    // symbol table pointer
     Inst*   inst;   // machine instruction
 }
-%token  <sym>   NUMBER VAR CONST BLTIN UNDEF
+%token  <sym>   NUMBER PRINT VAR CONST BLTIN UNDEF WHILE IF ELSE
+%type   <inst>  stmt asgn expr stmtlist cond while if end
 %right  '='
+%left   OR
+%left   AND
+%left   GT GE LT LE EQ NE
 %left   '+' '-' // left associative, same precedence
 %left   '*' '/'
-%left   UNARYMINUS
+%left   UNARYMINUS NOT
 %right  '^'     // exponentiation
 %%
 list:    // nothing
         | list '\n'
         | list asgn '\n'    { code2(pop, STOP); return 1;}
+        | list stmt '\n'    { code(STOP); return 1;}
         | list expr '\n'    { code2(print, STOP); return 1;}
         | list error '\n'   { yyerrok; }
         ;
-asgn:   VAR '=' expr    { code3(varpush, (Inst)$1, assign); }
+asgn:   VAR '=' expr    { $$=$3; code3(varpush, (Inst)$1, assign); }
         | CONST '=' expr    { execerror("cannot assign to const value", $1->name); }
         ;
-expr:   NUMBER          { code2(constpush, (Inst)$1); }
+stmt:   expr            { code(pop); }
+        | PRINT expr    { code(printexpr); $$=$2; }
+        | while cond stmt end {
+                ($1)[1] = (Inst)$3; // body of loop
+                ($1)[2] = (Inst)$4; // end, if cond fails
+            }
+        | if cond stmt end { // else-less if
+                ($1)[1] = (Inst)$3; // then part
+                ($1)[3] = (Inst)$4; // end, if cond fails
+            }
+        | if cond stmt end ELSE stmt end { // if with else
+                ($1)[1] = (Inst)$3; // then part
+                ($1)[2] = (Inst)$6; // else part
+                ($1)[3] = (Inst)$7; // end, if cond fails
+            }
+        | '{' stmtlist '}'  { $$ = $2; }
+        ;
+cond:   '(' expr ')'    { code(STOP); $$ = $2; }
+        ;
+while:  WHILE           { $$=code3(whilecode, STOP, STOP); }
+        ;
+if:     IF              { $$=code(ifcode); code3(STOP, STOP, STOP); }
+        ;
+end:     /*nothing*/    { code(STOP); $$=progp; }
+        ;
+stmtlist: /*nothing*/   { $$=progp; }
+        | stmtlist '\n'
+        | stmtlist stmt
+        ;
+expr:   NUMBER          { $$ = code2(constpush, (Inst)$1); }
         | VAR           { if ($1->type == UNDEF)
                               execerror("undefined variable1", $1->name);
-                          code3(varpush, (Inst)$1, eval);
+                          $$ = code3(varpush, (Inst)$1, eval);
                         }
-        | CONST         { code3(varpush, (Inst)$1, eval); }
+        | CONST         { $$ = code3(varpush, (Inst)$1, eval); }
         | asgn
-        | BLTIN '(' expr ')' { code2(bltin, (Inst)$1->u.ptr); }
+        | BLTIN '(' expr ')' { $$ = $3; code2(bltin, (Inst)$1->u.ptr); }
+        | '(' expr ')'       { $$ = $2; }
         | expr '+' expr   { code(add); }
         | expr '-' expr   { code(sub); }
         | expr '*' expr   { code(mul); }
         | expr '/' expr   { code(hocDiv); }
         | expr '^' expr   { code(power); }
-        | '(' expr ')'
-        | '-' expr %prec UNARYMINUS { code(negate); }   // unary minus
+        | '-' expr %prec UNARYMINUS { $$ = $2; code(negate); }   // unary minus
+        | expr GT expr    { code(gt); }
+        | expr GE expr    { code(ge); }
+        | expr LT expr    { code(lt); }
+        | expr LE expr    { code(le); }
+        | expr EQ expr    { code(eq); }
+        | expr NE expr    { code(ne); }
+        | expr AND expr   { code(hocAnd); }
+        | expr OR expr    { code(hocOr); }
+        | NOT expr        { $$ = $2; code(hocNot); }
         ;
 %%
         /* end of grammer */
@@ -66,6 +109,16 @@ int main(int argc, char** argv)
     for (initcode(); yyparse(); initcode())
         execute(prog);
     return 0;
+}
+
+static int follow(char expect, int ifyes, int ifno)
+{
+    int c = getchar();
+    if (c == expect) {
+        return ifyes;
+    }
+    ungetc(c, stdin);
+    return ifno;
 }
 
 int yylex()
@@ -105,10 +158,16 @@ int yylex()
         return s->type == UNDEF ? VAR : s->type;
     }
 
-    if (c == '\n')
-        lineno++;
-
-    return c;
+    switch (c) {
+        case '>':   return follow('=', GE, GT);
+        case '<':   return follow('=', LE, LT);
+        case '=':   return follow('=', EQ, '=');
+        case '!':   return follow('=', NE, NOT);
+        case '|':   return follow('|', OR, '|');
+        case '&':   return follow('&', AND, '&');
+        case '\n':  lineno++; return '\n';
+        default:    return c;
+    }
 }
 
 void warning(char* s, char* t)

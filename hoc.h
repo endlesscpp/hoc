@@ -10,7 +10,7 @@
  */
 typedef struct Symbol {
     char* name;
-    short type; // VAR, BLTIN, UNDEF
+    short type; // VAR, CONST, BLTIN, UNDEF
     union {
         double val;            // if VAR
         double (*ptr)(double); // if BLTIN
@@ -51,8 +51,13 @@ typedef void (*Inst)(); // machine instruction
 #define STOP (Inst)0
 
 extern Inst prog[];
+extern Inst* progp;
+extern Inst* code();
 extern void eval(), add(), sub(), mul(), hocDiv(), negate(), power();
 extern void assign(), bltin(), varpush(), constpush(), print();
+extern void printexpr();
+extern void gt(), lt(), eq(), ge(), le(), ne(), hocAnd(), hocOr(), hocNot();
+extern void ifcode(), whilecode();
 
 void        debugInitSymbolTable();
 const char* debugLookupFuncName(void* addr);

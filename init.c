@@ -22,6 +22,12 @@ static struct {
        {"log10", Log10}, {"exp", Exp}, {"sqrt", Sqrt}, {"int", Integer},
        {"abs", fabs},    {NULL, 0}};
 
+static struct {
+    const char* name;
+    int         kval;
+} keywords[] = {
+    {"if", IF}, {"else", ELSE}, {"while", WHILE}, {"print", PRINT}, {NULL, 0}};
+
 typedef struct DebugSymbol {
     const char*         name;
     void*               addr;
@@ -54,6 +60,18 @@ void debugInitSymbolTable()
     debugInstallSymbol("constpush", constpush);
     debugInstallSymbol("pop", pop);
     debugInstallSymbol("popPrint", print);
+    debugInstallSymbol("printexpr", printexpr);
+    debugInstallSymbol("gt", gt);
+    debugInstallSymbol("lt", lt);
+    debugInstallSymbol("eq", eq);
+    debugInstallSymbol("ge", ge);
+    debugInstallSymbol("le", le);
+    debugInstallSymbol("ne", ne);
+    debugInstallSymbol("and", hocAnd);
+    debugInstallSymbol("or", hocOr);
+    debugInstallSymbol("not", hocNot);
+    debugInstallSymbol("ifcode", ifcode);
+    debugInstallSymbol("whilecode", whilecode);
 
     int i;
     for (i = 0; builtins[i].name != NULL; i++) {
@@ -86,6 +104,10 @@ void init()
     for (i = 0; builtins[i].name != NULL; i++) {
         Symbol* s = install(builtins[i].name, BLTIN, 0.0);
         s->u.ptr  = builtins[i].func;
+    }
+
+    for (i = 0; keywords[i].name != NULL; i++) {
+        install(keywords[i].name, keywords[i].kval, 0.0);
     }
 
     debugInitSymbolTable();
