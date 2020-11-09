@@ -14,6 +14,8 @@ typedef struct Symbol {
     union {
         double val;            // if VAR
         double (*ptr)(double); // if BLTIN
+        void (*defn)();        // FUNCTION, PROCEDURE
+        char* str;             // STRING
     } u;
     struct Symbol* next; // link to another Symbol
 } Symbol;
@@ -52,13 +54,15 @@ typedef void (*Inst)(); // machine instruction
 
 extern Inst prog[];
 extern Inst* progp;
+extern Inst* progbase;
 extern Inst* code();
 extern void eval(), add(), sub(), mul(), hocDiv(), negate(), power();
-extern void assign(), bltin(), varpush(), constpush(), print();
-extern void printexpr();
+extern void  assign(), bltin(), varpush(), constpush(), print(), varread();
+extern void  printexpr(), printstr();
 extern void gt(), lt(), eq(), ge(), le(), ne(), hocAnd(), hocOr(), hocNot();
-extern void ifcode(), whilecode();
+extern void  ifcode(), whilecode(), call(), arg(), argassign();
+extern void  funcret(), procret();
 
 void        debugInitSymbolTable();
-const char* debugLookupFuncName(void* addr);
+const char* debugLookupBuiltinFuncName(void* addr);
 #endif

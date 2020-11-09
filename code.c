@@ -5,21 +5,40 @@
 #include "hoc.h"
 #include "y.tab.h"
 
+extern FILE* fin; // define in hoc.y
+
 #define NSTACK 256
 static Datum  stack[NSTACK]; // the stack
 static Datum* stackp;        // next free spot on stack
 
 #define NPROG 2000
-Inst  prog[NPROG]; // the machine
-Inst* progp;       // next free spot for code generation
-Inst* pc;          // program counter during execution
+Inst  prog[NPROG];     // the machine
+Inst* progp;           // next free spot for code generation
+Inst* pc;              // program counter during execution
+Inst* progbase = prog; // start of current subprogram. [bai]like EBP?
+int   returning;       // 1 if return stmt seen
+
+/**
+ * proc/func call stack frame
+ */
+typedef struct Frame {
+    Symbol* sp;    // symbol table entry
+    Inst*   retpc; // where to resume after return
+    Datum*  argn;  // n-th argument on stack
+    int     nargs; // number of arguments
+} Frame;
+#define NFRAME 100
+Frame  frame[NFRAME];
+Frame* fp; // frame pointer
 
 #define EPSILON 0.00000001
 
 void initcode()
 {
+    progp     = progbase;
     stackp = stack;
-    progp  = prog;
+    fp        = frame;
+    returning = 0;
 }
 
 /**
@@ -56,22 +75,35 @@ Inst* code(Inst f)
     }
 
     // [oak] debug
-    const char* name = debugLookupFuncName(f);
+    // TODO: f maybe arg and string
+    Inst        prevInst = (progp > prog) ? *(progp - 1) : NULL;
+    const char* name = debugLookupBuiltinFuncName(f);
     if (name != NULL) {
-        printf("\t%s\n", name);
-    } else if (f != NULL) {
+        printf("\t%p\t%s\n", progp, name);
+    } else if (f == NULL) {
+        printf("\t%p\tSTOP\n", progp);
+    } else if (prevInst == argassign || prevInst == arg) {
+        printf("\t%p\t$%d[arg]", progp, (int)f);
+    } else if (prevInst == printstr) {
+        printf("\t%p\t%s[string]", progp, (char*)f);
+    } else {
         Symbol* p = (Symbol*)f;
         if (p->type == CONST) {
-            printf("\t%s\n", p->name);
+            printf("\t%p\t%s\n", progp, p->name);
+        } else if (p->type == PROCEDURE) {
+            printf("\t%p\t%s[procedure]\n", progp, p->name);
+        } else if (p->type == FUNCTION) {
+            // [oak] ATTENTION: the Symbol is saved in instrument list.
+            // we explicitly call execute(defn) in call()
+            printf("\t%p\t%s[function]\n", progp, p->name);
         } else {
             if (p->name == NULL || strlen(p->name) == 0) {
-                printf("\t%.8g[type:%d]\n", p->u.val, p->type);
+                printf("\t%p\t%.8g[type:%d]\n", progp, p->u.val, p->type);
             } else {
-                printf("\t%s:%.8g[type:%d]\n", p->name, p->u.val, p->type);
+                printf("\t%p\t%s:%.8g[type:%d]\n", progp, p->name, p->u.val,
+                       p->type);
             }
         }
-    } else {
-        printf("\tSTOP\n");
     }
 
     *progp++ = f;
@@ -83,9 +115,116 @@ Inst* code(Inst f)
  */
 void execute(Inst* p)
 {
-    for (pc = p; *pc != STOP;) {
+    for (pc = p; *pc != STOP && !returning;) {
+        printf("** *pc = %p\n", *pc);
         (*(*pc++))();
     }
+}
+
+/**
+ * define func/proc in symbol table
+ */
+void define(Symbol* sp)
+{
+    // TODO: debug the progbase and progp at here.
+    printf("define...\n");
+    sp->u.defn = (Inst)progbase;
+    progbase   = progp;
+}
+
+/**
+ * call a function
+ */
+void call()
+{
+    Symbol* sp = (Symbol*)pc[0];
+    if (fp++ >= &frame[NFRAME - 1]) {
+        execerror(sp->name, "call nested too deeply");
+    }
+    // bai: like the C function call(put retpc, args onto stack).
+    // but the stackp is increased in HOC.
+    fp->sp    = sp;
+    fp->nargs = (int)pc[1];
+    fp->retpc = pc + 2;
+    fp->argn  = stackp - 1; // last argument
+    printf("call, nargs = %d, retpc = %p\n", fp->nargs, fp->retpc);
+    execute(sp->u.defn);
+    returning = 0;
+}
+
+/**
+ * common return from func or proc
+ */
+void ret()
+{
+    int i;
+    for (i = 0; i < fp->nargs; i++) {
+        pop();
+    }
+    pc = (Inst*)fp->retpc;
+    printf("after return, pc = %p\n", pc);
+    --fp;
+    returning = 1;
+}
+
+/**
+ * function ret. (BAI: function must return value, procedure NEVER return
+ * value).
+ */
+void funcret()
+{
+    Datum d;
+    if (fp->sp->type == PROCEDURE) {
+        execerror(fp->sp->name, "(proc) returns value");
+    }
+    d = pop(); // preserve function return value
+    ret();
+    push(d);
+}
+
+/**
+ * procedure return
+ */
+void procret()
+{
+    if (fp->sp->type == FUNCTION) {
+        execerror(fp->sp->name, "(func) returns no value");
+    }
+    ret();
+}
+
+/**
+ * return pointer to argument i (i start from 1 ($1, $2, $3...))
+ */
+double* getarg()
+{
+    int i = (int)*pc++;
+    if (i > fp->nargs) {
+        execerror(fp->sp->name, "not enough arguments");
+    }
+    // BAI: fp->argn point to the last arguments
+    return &fp->argn[i - fp->nargs].val;
+}
+
+/**
+ * push argument onto stack
+ */
+void arg()
+{
+    Datum d;
+    d.val = *getarg();
+    push(d);
+}
+
+/**
+ * store item on top of stack to argument
+ */
+void argassign()
+{
+    Datum d;
+    d = pop();
+    push(d); // leave value on stack
+    *getarg() = d.val;
 }
 
 /**
@@ -202,6 +341,51 @@ void print()
 }
 
 /**
+ * print numeric value
+ */
+void printexpr()
+{
+    Datum d;
+    d = pop();
+    printf("%.8g ", d.val);
+}
+
+/**
+ * print string value
+ */
+void printstr()
+{
+    printf("%s", (char*)*pc++);
+}
+
+/**
+ * read into variable
+ */
+void varread()
+{
+    Datum   d;
+    Symbol* var = (Symbol*)*pc++;
+Again:
+    switch (fscanf(fin, "%lf", &var->u.val)) {
+    case EOF:
+        if (moreinput()) {
+            goto Again;
+        }
+        d.val = var->u.val = 0.0;
+        break;
+    case 0:
+        execerror("non-number read into", var->name);
+        break;
+    default:
+        d.val = 1.0;
+        break;
+    }
+
+    var->type = VAR;
+    push(d);
+}
+
+/**
  * evalute built-in on top of stack
  */
 void bltin()
@@ -292,15 +476,6 @@ void hocNot()
     push(d1);
 }
 
-/**
- * print numeric value
- */
-void printexpr()
-{
-    Datum d;
-    d = pop();
-    printf("%.8g\n", d.val);
-}
 
 /**
  * stack layout:
