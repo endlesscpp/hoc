@@ -1,0 +1,3 @@
+1. what's %token and %type mean in hoc.y
+2. what's "return 1" means in list definition
+3. add comment support
