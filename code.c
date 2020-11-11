@@ -76,6 +76,7 @@ Inst* code(Inst f)
 
     // [oak] debug
     // TODO: f maybe arg and string
+    Inst        prev2    = (progp >= prog - 2) ? *(progp - 2) : NULL;
     Inst        prevInst = (progp > prog) ? *(progp - 1) : NULL;
     const char* name = debugLookupBuiltinFuncName(f);
     if (name != NULL) {
@@ -86,6 +87,9 @@ Inst* code(Inst f)
         printf("\t%p\t$%d[arg]", progp, (int)f);
     } else if (prevInst == printstr) {
         printf("\t%p\t%s[string]", progp, (char*)f);
+    } else if (prev2 == call) {
+        // [call, func, argcount]
+        printf("\t%p\t%d[argcount]", progp, (int)f);
     } else {
         Symbol* p = (Symbol*)f;
         if (p->type == CONST) {
@@ -116,7 +120,7 @@ Inst* code(Inst f)
 void execute(Inst* p)
 {
     for (pc = p; *pc != STOP && !returning;) {
-        printf("** *pc = %p\n", *pc);
+        printf("** pc = %p\n", pc);
         (*(*pc++))();
     }
 }

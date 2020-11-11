@@ -115,7 +115,7 @@ prlist: expr              { code(printexpr); }
 // [oak] why also insert code(procret), and both proc and func insert the same code(procret)?
 // [oak] to handle the case that user does NOT 'return' in func?
 defn:     FUNC procname   { $2->type=FUNCTION; indef=1; }
-          '(' ')' stmt    { code(funcret); define($2); indef=0; }
+          '(' ')' stmt    { code(procret); define($2); indef=0; }
         | PROC procname   { $2->type=PROCEDURE; indef=1; }
           '(' ')' stmt    { code(procret); define($2); indef=0; }
         ;
