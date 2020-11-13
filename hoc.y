@@ -199,6 +199,13 @@ static int follow(char expect, int ifyes, int ifno)
     return ifno;
 }
 
+static int look_ahead()
+{
+    int c = getc(fin);
+    ungetc(c, fin);
+    return c;
+}
+
 int main(int argc, char** argv)
 {
     progname = argv[0];
@@ -230,6 +237,19 @@ int yylex()
 
     if (c == EOF) {
         return 0;
+    }
+
+    // handle '//'
+    if (c == '/') {
+        if (look_ahead() == '/') {
+            while ((c = mygetc(fin)) != '\n' && c != EOF) {
+                ;
+            }
+            if (c == '\n') {
+                lineno++;
+            }
+            return c;
+        }
     }
     
     if (c == '.' || isdigit(c)) {
@@ -288,7 +308,7 @@ int yylex()
         }
         *p = '\0';
         yylval.sym = (Symbol*)emalloc(strlen(sbuf)+1);
-        strcpy(yylval.sym, sbuf);
+        strcpy((char*)yylval.sym, sbuf);
         return STRING;
     }
 
