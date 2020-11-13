@@ -5,6 +5,9 @@
 #    define NULL (0L)
 #endif
 
+typedef void (*Inst)(); // machine instruction
+#define STOP (Inst)0
+
 /**
  * symbol table entry
  */
@@ -14,7 +17,7 @@ typedef struct Symbol {
     union {
         double val;            // if VAR
         double (*ptr)(double); // if BLTIN
-        void (*defn)();        // FUNCTION, PROCEDURE
+        Inst* defn;            // FUNCTION, PROCEDURE
         char* str;             // STRING
     } u;
     struct Symbol* next; // link to another Symbol
@@ -49,8 +52,6 @@ typedef union Datum {
 
 extern Datum pop();
 
-typedef void (*Inst)(); // machine instruction
-#define STOP (Inst)0
 
 extern Inst prog[];
 extern Inst* progp;

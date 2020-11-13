@@ -132,7 +132,7 @@ void define(Symbol* sp)
 {
     // TODO: debug the progbase and progp at here.
     printf("define...\n");
-    sp->u.defn = (Inst)progbase;
+    sp->u.defn = progbase;
     progbase   = progp;
 }
 
@@ -497,10 +497,16 @@ void whilecode()
     d = pop();
     while (d.val > EPSILON) {
         execute(*((Inst**)savepc)); // body
+        if (returning) {
+            break;
+        }
         execute(savepc + 2);        // condition
         d = pop();
     }
-    pc = *(Inst**)(savepc + 1); // next statment
+
+    if (!returning) {
+        pc = *(Inst**)(savepc + 1); // next statment
+    }
 }
 
 /**
@@ -523,5 +529,8 @@ void ifcode()
     } else if (*(Inst**)(savepc + 1) != NULL) {
         execute(*(Inst**)(savepc + 1)); // else
     }
-    pc = *(Inst**)(savepc + 2); // next
+
+    if (!returning) {
+        pc = *(Inst**)(savepc + 2); // next
+    }
 }
