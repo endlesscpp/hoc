@@ -2,6 +2,7 @@
 #include "hoc.h"
 #include <stdio.h>
 #include <string.h>
+//#include <gperftools/profiler.h>
 #define code2(c1, c2)       code(c1);code(c2);
 #define code3(c1, c2, c3)   code(c1);code(c2);code(c3);
 void execerror(char* s, char* t);
@@ -208,6 +209,7 @@ static int look_ahead()
 
 int main(int argc, char** argv)
 {
+    //ProfilerStart("my.prof");
     progname = argv[0];
     if (argc == 1) {
         static char* stdinonly[] = {"-"};
@@ -222,6 +224,7 @@ int main(int argc, char** argv)
         execute_until_eof();
     }
     return 0;
+    //ProfilerStop();
 }
 
 static int mygetc(FILE* stream) {
