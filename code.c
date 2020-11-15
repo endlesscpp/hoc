@@ -15,7 +15,11 @@ static Datum* stackp;        // next free spot on stack
 Inst  prog[NPROG];     // the machine
 Inst* progp;           // next free spot for code generation
 Inst* pc;              // program counter during execution
-Inst* progbase = prog; // start of current subprogram. [bai]like EBP?
+Inst* progbase = prog; // start of current subprogram.
+                       // 1. function entry(defn) is set to progbase when define
+                       // it 2.after define function, progbase is set to progp
+                       // 3. when execute_until_eof, progp is set to progbase in
+                       // initcode().
 int   returning;       // 1 if return stmt seen
 
 /**
@@ -120,7 +124,7 @@ Inst* code(Inst f)
 void execute(Inst* p)
 {
     for (pc = p; *pc != STOP && !returning;) {
-        printf("** pc = %p\n", pc);
+        printf("-> pc = %p\n", pc);
         (*(*pc++))();
     }
 }
@@ -131,7 +135,7 @@ void execute(Inst* p)
 void define(Symbol* sp)
 {
     // TODO: debug the progbase and progp at here.
-    printf("define...\n");
+    printf("define(), progbase = %p, progp = %p\n", progbase, progp);
     sp->u.defn = progbase;
     progbase   = progp;
 }

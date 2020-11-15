@@ -4,3 +4,5 @@ func foo() {
     print 22222
     return 3.1415926535 
 }
+a = 3
+b = 4

@@ -186,6 +186,7 @@ static void execute_until_eof()
     signal(SIGFPE, fprecatch);
     for (initcode(); yyparse(); initcode()) {
         // BAI: attention, here use progbase rather than prog in hoc6.
+        printf("execute_until_eof(), progbase = %p\n", progbase);
         execute(progbase);
     }
 }
