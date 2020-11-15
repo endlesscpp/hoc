@@ -327,6 +327,7 @@ void eval()
  */
 void assign()
 {
+    printf("*****in assign...\n");
     Datum d1, d2;
     d1 = pop();
     d2 = pop();

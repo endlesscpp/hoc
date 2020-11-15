@@ -43,12 +43,13 @@ asgn:   VAR '=' expr    { $$=$3; code3(varpush, (Inst)$1, assign); }
         | CONST '=' expr    { execerror("cannot assign to const value", $1->name); }
         | ARG '=' expr      { defnonly("$"); code2(argassign,(Inst)$1); $$=$3; }
         ;
-stmt:   expr            { code(pop); }
-        | RETURN        { defnonly("return"); code(procret); }
-        | RETURN expr   { defnonly("return"); $$=$2; code(funcret); }
-        | PROCEDURE begin '(' arglist ')'
+stmt:   ';'
+        | expr ';'            { code(pop); }
+        | RETURN ';'       { defnonly("return"); code(procret); }
+        | RETURN expr ';'   { defnonly("return"); $$=$2; code(funcret); }
+        | PROCEDURE begin '(' arglist ')' ';'
                         { $$=$2; code3(call, (Inst)$1, (Inst)$4); }
-        | PRINT prlist  { $$=$2; }
+        | PRINT '(' prlist ')' ';' { $$=$3; }
         | while cond stmt end {
                 ($1)[1] = (Inst)$3; // body of loop
                 ($1)[2] = (Inst)$4; // end, if cond fails
@@ -77,10 +78,9 @@ stmtlist: /*nothing*/   { $$=progp; }
         | stmtlist stmt
         ;
 expr:   NUMBER          { $$ = code2(constpush, (Inst)$1); }
-        | VAR           { if ($1->type == UNDEF)
-                              execerror("undefined variable1", $1->name);
-                          $$ = code3(varpush, (Inst)$1, eval);
-                        }
+        | VAR           { // do NOT check type, because the var defined sub-procedure is not
+                          // assigned when parse, it's type is still UNDEF before proc is called.
+                          $$ = code3(varpush, (Inst)$1, eval); }
         | CONST         { $$ = code3(varpush, (Inst)$1, eval); }
         | ARG           { defnonly("$"); $$ = code2(arg, (Inst)$1); }
         | asgn
@@ -243,7 +243,7 @@ int yylex()
         return 0;
     }
 
-    // handle '//'
+    // handle comment '//'
     if (c == '/') {
         if (look_ahead() == '/') {
             while ((c = mygetc(fin)) != '\n' && c != EOF) {
@@ -278,6 +278,7 @@ int yylex()
         if (s == NULL) {
             s = install(sbuf, UNDEF, 0.0);
         }
+        printf("sbuf = %s, type = %d\n", sbuf, s->type);
         yylval.sym = s;
         return s->type == UNDEF ? VAR : s->type;
     }
