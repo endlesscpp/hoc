@@ -1,0 +1,6 @@
+a = 3.1415926/4;
+//b = sin(a);
+b = atan2(2, 2);
+c = b;
+print(b);
+print(c);

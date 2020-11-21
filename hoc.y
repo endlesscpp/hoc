@@ -87,7 +87,7 @@ expr:   NUMBER          { $$ = code2(constpush, (Inst)$1); }
         | FUNCTION begin '(' arglist ')'
                         { $$ = $2; code3(call, (Inst)$1, (Inst)$4); }
         | READ '(' VAR ')'   { $$ = code2(varread, (Inst)$3); }
-        | BLTIN '(' expr ')' { $$ = $3; code2(bltin, (Inst)$1->u.ptr); }
+        | BLTIN '(' arglist ')' { $$ = $3; code3(bltin, (Inst)$1->u.ptr, (Inst)$3); }
         | '(' expr ')'       { $$ = $2; }
         | expr '+' expr   { code(add); }
         | expr '-' expr   { code(sub); }

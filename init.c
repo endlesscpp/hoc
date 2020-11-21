@@ -17,10 +17,12 @@ static struct {
 static struct {
     const char* name;
     double (*func)(double);
-} builtins[]
-    = {{"sin", sin},     {"cos", cos}, {"atan", atan}, {"log", Log},
-       {"log10", Log10}, {"exp", Exp}, {"sqrt", Sqrt}, {"int", Integer},
-       {"abs", fabs},    {NULL, 0}};
+} builtins[] = {{"sin", sin},     {"cos", cos},
+                {"atan", atan},   {"log", Log},
+                {"log10", Log10}, {"exp", Exp},
+                {"sqrt", Sqrt},   {"int", Integer},
+                {"abs", fabs},    {"atan2", (double (*)(double))atan2},
+                {NULL, 0}};
 
 static struct {
     const char* name;

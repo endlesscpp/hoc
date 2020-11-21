@@ -91,7 +91,7 @@ Inst* code(Inst f)
         printf("\t%p\t$%d[arg]", progp, (int)f);
     } else if (prevInst == printstr) {
         printf("\t%p\t%s[string]", progp, (char*)f);
-    } else if (prev2 == call) {
+    } else if (prev2 == call || prev2 == bltin) {
         // [call, func, argcount]
         printf("\t%p\t%d[argcount]\n", progp, (int)f);
     } else {
@@ -396,13 +396,40 @@ Again:
 
 /**
  * evalute built-in on top of stack
+ * code:
+ * bltin
+ * func
+ * argn
+ * TODO: how to support arbitary number of parameters
+ * TODO: consider add the bltin parameter count in Symbol, so that we can report
+ * error when parsing.
  */
 void bltin()
 {
+    typedef double (*PFN_FUNC1)(double);
+    typedef double (*PFN_FUNC2)(double, double);
+
+    int nargs = (int)pc[1];
+    Datum* lastarg = stackp - 1;
+
     Datum d;
-    d     = pop();
-    d.val = (*(double (*)(double))(*pc++))(d.val);
+    if (nargs == 1) {
+        d.val = (*(PFN_FUNC1)(*pc))(lastarg->val);
+    } else if (nargs == 2) {
+        d.val = (*(PFN_FUNC2)(*pc))((lastarg - 1)->val, lastarg->val);
+    } else {
+        printf("only support bltin with max 2 parameters\n");
+        d.val = 0;
+    }
+
+    // pop the args
+    int i;
+    for (i = 0; i < nargs; i++) {
+        pop();
+    }
+
     push(d);
+    pc = pc + 2;
 }
 
 void lt()
