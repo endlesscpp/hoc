@@ -93,7 +93,7 @@ Inst* code(Inst f)
         printf("\t%p\t%s[string]", progp, (char*)f);
     } else if (prev2 == call) {
         // [call, func, argcount]
-        printf("\t%p\t%d[argcount]", progp, (int)f);
+        printf("\t%p\t%d[argcount]\n", progp, (int)f);
     } else {
         Symbol* p = (Symbol*)f;
         if (p->type == CONST) {
