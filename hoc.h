@@ -8,6 +8,13 @@
 typedef void (*Inst)(); // machine instruction
 #define STOP (Inst)0
 
+struct Symbol;
+
+typedef struct Env {
+    struct Symbol* symlist;
+    struct Env* prev;
+} Env;
+
 /**
  * symbol table entry
  */
@@ -21,6 +28,7 @@ typedef struct Symbol {
         char* str;             // STRING
     } u;
     struct Symbol* next; // link to another Symbol
+    struct Env*    env;  // only function / procedure has env
 } Symbol;
 
 /**
@@ -36,6 +44,16 @@ Symbol* install(const char* s, int t, double d);
  * @param s - name
  */
 Symbol* lookup(const char* s);
+
+/**
+ * push local env
+ */
+void pushLocalEnv(Symbol* sp);
+
+/**
+ * pop current env, restore to global env
+ */
+void popEnv();
 
 /**
  * alloc buffer

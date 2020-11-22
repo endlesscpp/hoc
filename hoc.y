@@ -115,8 +115,8 @@ prlist: expr              { code(printexpr); }
         ;
 // [oak] why also insert code(procret), and both proc and func insert the same code(procret)?
 // [oak] to handle the case that user does NOT 'return' in func?
-defn:     FUNC procname   { $2->type=FUNCTION; indef=1; }
-          '(' ')' stmt    { code(procret); define($2); indef=0; }
+defn:     FUNC procname   { $2->type=FUNCTION; pushLocalEnv($2); indef=1; }
+          '(' ')' stmt    { code(procret); define($2); popEnv(); indef=0; }
         | PROC procname   { $2->type=PROCEDURE; indef=1; }
           '(' ')' stmt    { code(procret); define($2); indef=0; }
         ;
@@ -275,6 +275,9 @@ int yylex()
         *p = '\0';
         
         s = lookup(sbuf);
+        if (strcmp(sbuf, "a") == 0) {
+            printf("lookup, result = %p\n", s); 
+        }
         if (s == NULL) {
             s = install(sbuf, UNDEF, 0.0);
         }
@@ -324,7 +327,7 @@ int yylex()
         case '!':   return follow('=', NE, NOT);
         case '|':   return follow('|', OR, '|');
         case '&':   return follow('&', AND, '&');
-        case '\n':  lineno++; return '\n';
+        case '\n':  printf("lineno = %d\n", lineno); lineno++; return '\n';
         default:    return c;
     }
 }

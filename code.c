@@ -156,6 +156,7 @@ void call()
     fp->retpc = pc + 2;
     fp->argn  = stackp - 1; // last argument
     printf("call, nargs = %d, retpc = %p\n", fp->nargs, fp->retpc);
+    pushLocalEnv(sp);
     execute(sp->u.defn);
     returning = 0;
 }
@@ -172,6 +173,7 @@ void ret()
     pc = (Inst*)fp->retpc;
     printf("after return, pc = %p\n", pc);
     --fp;
+    popEnv();
     returning = 1;
 }
 
@@ -356,7 +358,7 @@ void printexpr()
 {
     Datum d;
     d = pop();
-    printf("%.8g ", d.val);
+    printf("%.8g\n", d.val);
 }
 
 /**
@@ -566,3 +568,4 @@ void ifcode()
         pc = *(Inst**)(savepc + 2); // next
     }
 }
+
