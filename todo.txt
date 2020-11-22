@@ -2,7 +2,8 @@
 - what's "return 1" means in list definition // DONE: return 0 means the input file of yyparse is finished.
 - what's the $$ = XXX in hoc.y means. why introduce 'begin' when support function.
 - add comment support // DONE
+- the local variable and global variable // DONE
 
-- output each line, and show instrument under it.
 - named function parameter
-- the local variable and global variable
+- output each line, and show instrument under it.
+- the lineno is incorrect when parse error

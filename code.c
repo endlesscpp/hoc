@@ -317,6 +317,10 @@ void eval()
 {
     Datum d;
     d     = pop();
+    if (d.sym->type != VAR && d.sym->type != UNDEF) {
+        execerror("attempt to evalute non-variable", d.sym->name);
+    }
+
     if (d.sym->type == UNDEF) {
         execerror("undefined variable", d.sym->name);
     }
