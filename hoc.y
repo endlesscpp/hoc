@@ -7,7 +7,7 @@
 #define code3(c1, c2, c3)   code(c1);code(c2);code(c3);
 void execerror(char* s, char* t);
 void yyerror(char* s);
-void defnonly(const char* s);
+void defonly(const char* s);
 int indef;  // if is in function/procedure definition
 %}
 %union {
@@ -21,6 +21,7 @@ int indef;  // if is in function/procedure definition
 %type   <inst>  stmt asgn expr stmtlist prlist
 %type   <inst>  cond while if begin end
 %type   <sym>   procname
+%type   <sym>   paramlist
 %type   <narg>  arglist
 %right  '='
 %left   OR
@@ -115,10 +116,11 @@ prlist: expr              { code(printexpr); }
         ;
 // [oak] why also insert code(procret), and both proc and func insert the same code(procret)?
 // [oak] to handle the case that user does NOT 'return' in func?
+// TODO: use a flag to indicate if is declaring parameter.
 defn:     FUNC procname   { $2->type=FUNCTION; pushLocalEnv($2); indef=1; }
-          '(' ')' stmt    { code(procret); define($2); popEnv(); indef=0; }
+          '(' paramlist ')' stmt    { code(procret); define($2, $5); popEnv(); indef=0; }
         | PROC procname   { $2->type=PROCEDURE; indef=1; }
-          '(' ')' stmt    { code(procret); define($2); indef=0; }
+          '(' ')' stmt    { code(procret); define($2, NULL); indef=0; }
         ;
 procname: VAR
         | FUNCTION
@@ -128,6 +130,10 @@ arglist:  /*nothing*/     { $$ = 0; }
         | expr            { $$ = 1; }
         | arglist ',' expr  { $$ = $1 + 1; }
         ;
+paramlist: /*nothing*/  { $$ = NULL; }
+         | VAR          { $$ = $1; }
+         | paramlist ',' VAR { $$ = $3; }
+         ;
 %%
         /* end of grammer */
 
@@ -275,8 +281,8 @@ int yylex()
         *p = '\0';
         
         s = lookup(sbuf);
-        if (strcmp(sbuf, "a") == 0) {
-            printf("lookup, result = %p\n", s); 
+        if (strcmp(sbuf, "arg1") == 0 || strcmp(sbuf, "arg2") == 0) {
+            printf("lookup %s, result = %p\n", sbuf, s); 
         }
         if (s == NULL) {
             s = install(sbuf, UNDEF, 0.0);

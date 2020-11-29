@@ -57,15 +57,17 @@ Symbol* install(const char* s, int t, double d)
 
 void pushLocalEnv(Symbol* sp)
 {
-    printf("push local env...\n");
+    printf("push local env, currEnv = %p...\n", sp->env);
     if (sp->type != FUNCTION && sp->type != PROCEDURE) {
         printf("invalid symbol type when create local env, type = %d\n",
                sp->type);
         return;
     }
 
-    sp->env          = (Env*)malloc(sizeof(Env));
-    sp->env->symlist = NULL;
+    if (sp->env == NULL) {
+        sp->env          = (Env*)malloc(sizeof(Env));
+        sp->env->symlist = NULL;
+    }
     sp->env->prev    = &globalEnv;
     currEnv          = sp->env;
 }
@@ -74,5 +76,16 @@ void popEnv()
 {
     printf("pop env...\n");
     currEnv = &globalEnv;
+}
+
+void debugDumpEnv()
+{
+    printf("-----------dump env begin---------------\n");
+    Symbol* s;
+    for (s = currEnv->symlist; s != NULL; s = s->next) {
+        printf("name = %s, type = %d, val = %.8g, addr = %p\n", s->name,
+               s->type, s->u.val, s);
+    }
+    printf("-----------dump env end-----------------\n");
 }
 

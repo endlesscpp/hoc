@@ -1,0 +1,8 @@
+func myadd(arg1, arg2) {
+    return arg1 + arg2;
+}
+
+a1 = myadd(1, 2);
+a2 = myadd(1, 2);
+print(a1);
+print(a2);

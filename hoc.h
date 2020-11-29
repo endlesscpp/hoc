@@ -15,6 +15,11 @@ typedef struct Env {
     struct Env* prev;
 } Env;
 
+typedef struct Func {
+    Inst*   defn;
+    struct Symbol* params; // point to the last parameter; NULL if no parameter
+} Func;
+
 /**
  * symbol table entry
  */
@@ -24,7 +29,7 @@ typedef struct Symbol {
     union {
         double val;            // if VAR
         double (*ptr)(double); // if BLTIN
-        Inst* defn;            // FUNCTION, PROCEDURE
+        Func  func;            // FUNCTION, PROCEDURE
         char* str;             // STRING
     } u;
     struct Symbol* next; // link to another Symbol
@@ -54,6 +59,11 @@ void pushLocalEnv(Symbol* sp);
  * pop current env, restore to global env
  */
 void popEnv();
+
+/**
+ * debug output all symbol in current env
+ */
+void debugDumpEnv();
 
 /**
  * alloc buffer

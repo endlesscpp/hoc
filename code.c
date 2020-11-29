@@ -132,11 +132,12 @@ void execute(Inst* p)
 /**
  * define func/proc in symbol table
  */
-void define(Symbol* sp)
+void define(Symbol* sp, Symbol* params)
 {
     // TODO: debug the progbase and progp at here.
     printf("define(), progbase = %p, progp = %p\n", progbase, progp);
-    sp->u.defn = progbase;
+    sp->u.func.defn = progbase;
+    sp->u.func.params = params;
     progbase   = progp;
 }
 
@@ -150,14 +151,24 @@ void call()
         execerror(sp->name, "call nested too deeply");
     }
     // bai: like the C function call(put retpc, args onto stack).
-    // but the stackp is increased in HOC.
+    // but the stackp is increasing in HOC.
     fp->sp    = sp;
     fp->nargs = (int)pc[1];
     fp->retpc = pc + 2;
     fp->argn  = stackp - 1; // last argument
     printf("call, nargs = %d, retpc = %p\n", fp->nargs, fp->retpc);
     pushLocalEnv(sp);
-    execute(sp->u.defn);
+    debugDumpEnv();
+    // set pamateters
+    Symbol* arg;
+    Datum*  lastp = stackp - 1;
+    for (arg = sp->u.func.params; arg != NULL; arg = arg->next) {
+        arg->u.val   = lastp->val;
+        arg->type    = VAR;
+        lastp        = lastp - 1;
+        printf("arg[%s] = %.8g\n", arg->name, arg->u.val);
+    }
+    execute(sp->u.func.defn);
     returning = 0;
 }
 
